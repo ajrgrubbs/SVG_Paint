@@ -1,0 +1,51 @@
+<html>
+	<head>
+		<link rel="stylesheet" href="css/my.css"/>
+		<script type="text/javascript" src="javascript/jquery-2.1.4.js"></script>
+		<script type="text/javascript" src="javascript/svgpaint.js"></script>
+		<script type="text/javascript">
+			$(function() {
+				var svgPaint = new SVGPaint("#canvas");
+				
+				var toggles = function() {
+					$(".options").toggle();
+					$(".options-toggle").toggle();
+				}
+				$(".options-toggle").click(function() {
+					toggles();
+					$("#canvas").one("touchstart", toggles);
+				});
+				
+				$("#color").change(function() {
+					svgPaint.setColor($(this).val());
+				});
+				
+				$("#fill").change(function() {
+					svgPaint.setFill($(this).val());
+				});
+				
+				$("#width").change(function() {
+					svgPaint.setWidth($(this).val());
+				});
+				
+				$("input[name='mode']").change(function() {
+					var mode = $(this).attr("id");
+					svgPaint.setMode(mode);
+				});
+			});
+		</script>
+	</head>
+	<body>
+		<div id="controls">
+			<img class="options-toggle" src="images/ic_create_black_24px.svg" />
+			<div class="options" style="display:none;">
+				<div><label for="color">Color</label> <input id="color" type="text" value="red"/></div>
+				<div><label for="fill">Fill</label> <input id="fill" type="text" value="none"/></div>
+				<div><label for="width">Width</label> <input id="width" type="text" value="2px"/></div>
+				<div><label for="line">Line</label> <input id="line" class="draw-mode" type="radio" name="mode" checked/></div>
+				<div><label for="path">Path</label> <input id="path" class="draw-mode" type="radio" name="mode"/></div>
+			</div>
+		</div>
+		<div id="canvas"></div>
+	</body>
+</html>

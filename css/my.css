@@ -1,0 +1,27 @@
+body {
+	margin: 0;
+}
+#canvas {
+	background: lightblue;
+	height: 100%;
+	width: 100%;
+}
+#controls {
+	position: fixed;
+	right: 0;
+	top: 0;
+	background: #DAE8EC;
+	z-index: 10;
+}
+.options-toggle {
+	cursor: pointer;
+}
+.options {
+	margin: 10px;
+}
+#controls img {
+	height: 30px;
+	width: 30px;
+	margin-left: 5px;
+	float: right;
+}
