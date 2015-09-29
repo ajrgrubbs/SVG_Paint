@@ -3,15 +3,19 @@
  */
 function SVGPaint(target) {
 	var canvas = $(target);
+	var touchHandler = new MultiTouchHandler(target);
+
 	var color = "red";
+	var fill = "none";
 	var width = "2px";
-	var mode;
-	var valid_modes = ['line'];
 	var registry = {};
-	
-	// Public Methods
+
+	// Public Functions
 	this.setColor = function(col) {
 		color = col;
+	}
+	this.setFill = function(col) {
+		fill = col;
 	}
 	this.setWidth = function(w) {
 		width = w;
@@ -21,38 +25,33 @@ function SVGPaint(target) {
 		if (!behavior) {
 			throw "Mode '" + m + "' is not recognized.";
 		}
-		$.each(["mousedown", "mousemove", "mouseup", "touchstart", "touchmove", "touchend"], function(i, eventType) {
-			canvas.off(eventType);
-			var handlers = behavior[eventType];
-			if (handlers) {
-				$.each(handlers, function(j, handler) {
-					canvas.on(eventType, handler);
-				});
-			}
-		});
+		touchHandler.clearEvents();
+		behavior.registerEvents(touchHandler);
 	}
-	
-	// Private helper methods
+
+	// Private helper functions
 	var makeSVG = function(tag) {
 		return $(document.createElementNS("http://www.w3.org/2000/svg", tag));
 	}
-	
-	var getX = function(e) {
-		return e.clientX || e.originalEvent.touches[0].clientX;
+
+	var getX = function(e, i) {
+		i = i || 0;
+		return e.originalEvent.touches[i].clientX;
 	}
-	
-	var getY = function(e) {
-		return e.clientY || e.originalEvent.touches[0].clientY;
+
+	var getY = function(e, i) {
+		i = i || 0;
+		return e.originalEvent.touches[i].clientY;
 	}
-	
-	// Different Mode Behaviors
+
+	// Line Behaviors
 	var Line = function() {
-		var lineFlag = false, line;
-		
+		var line;
+
 		var create = function(e) {
 			var x = getX(e);
 			var y = getY(e);
-			
+
 			var svg = makeSVG('svg').css({
 				position: 'absolute',
 				width: '100%',
@@ -67,59 +66,54 @@ function SVGPaint(target) {
 				'stroke-width': width
 			});
 			canvas.append(svg.append(line));
-			lineFlag = true;
 		};
-		
+
 		var update = function(e) {
-			if (lineFlag) {
-				line.attr({
-					x2: getX(e),
-					y2: getY(e)
-				})
-			}
+			line.attr({
+				x2: getX(e),
+				y2: getY(e)
+			})
 		}
-		
-		var finalize = function(e) {
-			lineFlag = false;
+
+		this.registerEvents = function(touchHandler) {
+			touchHandler.touchStart(create, 0);
+			touchHandler.touchMove(update, 0, true);
 		}
-		
-		this.mousedown = [create];
-		this.mousemove = [update];
-		this.mouseup = [finalize];
-		this.touchstart = [create];
-		this.touchmove = [update];
-		this.touchend = [finalize];
 	}
 	registry.line = new Line();
-	
-	this.setMode('line'); // Default behavior
-	
-	
+	this.setMode('line'); // Lines are default behavior
+
+	// Path behavior
 	var Path = function() {
-		var pathFlag = false, newPointFlag = false, path, directives = [];
-		
+		var newPointFlag = false, path, directives = [];
+
 		var parseDirectives = function() {
 			var result = "";
 			$.each(directives, function(i, directive) {
 				if (directive.t == "M" || directive.t == "m" || directive.t == "L" || directive.t == "l") {
 					result += directive.t + " " + directive.x + "," + directive.y + " ";
 				}
+				else if (directive.t == "Q" || directive.t == "q") {
+					result += directive.t + directive.x1 + "," + directive.y1 + " " + directive.x + "," + directive.y + " ";
+				}
 			});
 			return result;
 		};
-		
-		var interval;
-		
+
+		var segmentStart;
+
 		var create = function(e) {
 			var x = getX(e);
 			var y = getY(e);
+			segmentStart = {x: x, y: y};
 			directives = [{
 				t: "M",
 				x: x,
 				y: y
 			}];
-			
+
 			var svg = makeSVG('svg').css({
+				position: 'absolute',
 				width: '100%',
 				height: '100%'
 			});
@@ -127,55 +121,132 @@ function SVGPaint(target) {
 				d: parseDirectives(),
 				stroke: color,
 				'stroke-width': width,
-				fill: 'none'
+				fill: fill
 			});
 			canvas.append(svg.append(path));
-			pathFlag = true;
 			newPointFlag = true;
-			
-			// Temp, for testing
-			if (interval) {
-				clearInterval(interval);
-			}
-			interval = setInterval(function() {
-				console.log("ping");
-				if (pathFlag) {
-					newPointFlag = true;
-				}
-				else {
-					clearInterval(interval);
-				}
-			}, 2000);
 		};
-		
+
 		var update = function(e) {
-			if(pathFlag) {
+			requestAnimationFrame(function() {
+
 				if (newPointFlag) {
-					directives.push({});
+					directives.push({t: "L"});
 					newPointFlag = false;
 				}
-				
-				directives[directives.length -1] = {
-					t: "L",
-					x: getX(e),
-					y: getY(e)
-				};
-				
+
+				directives[directives.length - 1].x = getX(e);
+				directives[directives.length - 1].y = getY(e);
+
 				path.attr({
 					d: parseDirectives()
 				});
-			}
+
+			});
 		}
-		
-		var finalize = function(e) {
-			console.log("Done");
-			pathFlag = false;
+
+		var ctlPointRoot;
+		var prepareArc = function(e) {
+			ctlPointRoot = {
+				x: getX(e, 1),
+				y: getY(e, 1)
+			};
+			console.log("Control point rooted at: " + ctlPointRoot.x + ", " + ctlPointRoot.y);
 		}
-		
-		this.touchstart = [create];
-		this.touchmove = [update];
-		this.touchend = [finalize];
+
+		var alterCurve = function(e) {
+			requestAnimationFrame(function() {
+				var center = {
+					x: (segmentStart.x + getX(e)) / 2,
+					y: (segmentStart.y + getY(e)) / 2
+				};
+				directives[directives.length - 1] = {
+					t: "Q",
+					x: getX(e),
+					y: getY(e),
+					x1: center.x + (getX(e, 1) - ctlPointRoot.x),
+					y1: center.y + (getY(e, 1) - ctlPointRoot.y)
+				};
+			});
+		}
+
+		var newPoint = function(e) {
+			newPointFlag = true;
+			segmentStart = {x: getX(e), y: getY(e)};
+		}
+
+		this.registerEvents = function(touchHandler) {
+			touchHandler.touchStart(create, 0);
+			touchHandler.touchMove(update, 0, true);
+			touchHandler.touchStart(prepareArc, 1);
+			touchHandler.touchMove(alterCurve, 1, true);
+			touchHandler.touchEnd(newPoint, 1);
+		}
 	}
 	registry.path = new Path();
-	
+
+}
+
+function MultiTouchHandler(canvas) {
+	var canvas = $(canvas);
+	var eventRegistry = {};
+
+	var genericHandler = function(e) {
+		e.preventDefault();
+		var type = eventRegistry[e.type];
+		if (type) {
+			if(type[-1]) {
+				$.each(type[-1], function(i, eventHandler) {
+					eventHandler(e);
+				});
+			}
+
+			$.each(e.originalEvent.changedTouches, function(i, touch) {
+				finger = touch.identifier;
+				if(type[finger]) {
+					$.each(type[finger], function(j, handler) {
+						handler(e);
+					});
+				}
+			});
+		}
+	}
+
+	// Public Functions
+	this.clearEvents = function() {
+		$.each(eventRegistry, function(eventName, fingerEvents) {
+			$.each(fingerEvents, function(fingerIndex, eventsArray) {
+				eventRegistry[eventName][fingerIndex] = [];
+			});
+		});
+	};
+
+	this.addEvent = function(eventType, eventHandler, finger, throttle) {
+		if (!$.isNumeric(finger) || finger < 0) {
+			finger = -1;
+		}
+
+		if (eventRegistry[eventType] == null) {
+			eventRegistry[eventType] = {};
+
+			canvas.on(eventType, genericHandler);
+		}
+		if (eventRegistry[eventType][finger] == null) {
+			eventRegistry[eventType][finger] = [];
+		}
+
+		eventRegistry[eventType][finger].push(eventHandler);
+	};
+
+	// For convenience
+	this.touchStart = function(eventHandler, finger, throttle) {
+		this.addEvent("touchstart", eventHandler, finger, throttle);
+	}
+	this.touchMove = function(eventHandler, finger, throttle) {
+		this.addEvent("touchmove", eventHandler, finger, throttle);
+	}
+	this.touchEnd = function(eventHandler, finger, throttle) {
+		this.addEvent("touchend", eventHandler, finger, throttle);
+	}
+
 }
