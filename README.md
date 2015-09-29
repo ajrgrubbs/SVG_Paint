@@ -1,2 +1,2 @@
 # SVG_Paint
-Proof-of-concept project of a crappy illustration program that is completely JavaScript driven
+Proof-of-concept project of a multi-touch illustration API driven purely by JavaScript-generated SVGs.

@@ -151,7 +151,6 @@ function SVGPaint(target) {
 				x: getX(e, 1),
 				y: getY(e, 1)
 			};
-			console.log("Control point rooted at: " + ctlPointRoot.x + ", " + ctlPointRoot.y);
 		}
 
 		var alterCurve = function(e) {
@@ -184,7 +183,6 @@ function SVGPaint(target) {
 		}
 	}
 	registry.path = new Path();
-
 }
 
 function MultiTouchHandler(canvas) {
