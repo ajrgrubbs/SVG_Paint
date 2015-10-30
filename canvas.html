@@ -20,18 +20,20 @@
 					svgPaint.setColor($(this).val());
 				});
 				
-				$("#fill").change(function() {
+				var initFill = $("#fill").change(function() {
 					svgPaint.setFill($(this).val());
-				});
+				}).val();
+				svgPaint.setFill(initFill);
 				
 				$("#width").change(function() {
 					svgPaint.setWidth($(this).val());
 				});
 				
-				$("input[name='mode']").change(function() {
-					var mode = $(this).attr("id");
+				var initMode = $("input[name='mode']").change(function() {
+					var mode = $("input[name='mode']").filter("[checked]").attr("id");
 					svgPaint.setMode(mode);
-				});
+				}).filter("[checked]").attr("id");
+				svgPaint.setMode(initMode);
 			});
 		</script>
 	</head>
@@ -40,10 +42,10 @@
 			<img class="options-toggle" src="images/ic_create_black_24px.svg" />
 			<div class="options" style="display:none;">
 				<div><label for="color">Color</label> <input id="color" type="text" value="red"/></div>
-				<div><label for="fill">Fill</label> <input id="fill" type="text" value="none"/></div>
+				<div><label for="fill">Fill</label> <input id="fill" type="text" value="rgba(0,0,0,.5)"/></div>
 				<div><label for="width">Width</label> <input id="width" type="text" value="2px"/></div>
-				<div><label for="line">Line</label> <input id="line" class="draw-mode" type="radio" name="mode" checked/></div>
-				<div><label for="path">Path</label> <input id="path" class="draw-mode" type="radio" name="mode"/></div>
+				<div><label for="line">Line</label> <input id="line" class="draw-mode" type="radio" name="mode"/></div>
+				<div><label for="path">Path</label> <input id="path" class="draw-mode" type="radio" name="mode" checked/></div>
 			</div>
 		</div>
 		<div id="canvas"></div>

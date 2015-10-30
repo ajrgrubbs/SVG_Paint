@@ -236,7 +236,6 @@ function MultiTouchHandler(canvas) {
 		eventRegistry[eventType][finger].push(eventHandler);
 	};
 
-	// For convenience
 	this.touchStart = function(eventHandler, finger, throttle) {
 		this.addEvent("touchstart", eventHandler, finger, throttle);
 	}
